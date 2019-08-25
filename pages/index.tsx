@@ -8,13 +8,7 @@ import { number } from 'prop-types'
 import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props'
 import axios from 'axios'
 import '../static/css/App.css'
-// import logo from '../static/assets/ic_code.png'
-// import facebookLogo from '../static/assets/facebook_icon.png'
-// import whiteLogo from '../static/assets/news_icon_white.png'
-// import shareLogo from '../static/assets/share_icon.png'
-// import imgCode from '../static/assets/ic_code.png'
-// import imgTravel from '../static/assets/ic_travel.png'
-
+import '../static/css/index.css'
 import 'antd/es/slider/style/index.css'
 import 'antd/es/select/style/index.css'
 import 'antd/es/button/style/index.css'
@@ -59,9 +53,6 @@ const textSplitter = (content: NewResponse) => {
 class Home extends React.Component<
   {},
   {
-    newLists: any
-    textSeq: string[]
-    currentReader: number
     currentText: string
     sharedID: string
     voiceLanguage: string
@@ -76,9 +67,6 @@ class Home extends React.Component<
   constructor(props) {
     super(props)
     this.state = {
-      currentReader: 0,
-      newLists: [],
-      textSeq: [],
       currentText: '. . .',
       sharedID: '',
       voiceLanguage: 'Thai Female',
@@ -94,20 +82,40 @@ class Home extends React.Component<
     this.loginSession = this.loginSession.bind(this)
     this.logoutSession = this.logoutSession.bind(this)
     this.languageChange = this.languageChange.bind(this)
-    this.changeContent = this.changeContent.bind(this)
-    this.changeCurrentReader = this.changeCurrentReader.bind(this)
-    this.reader = this.reader.bind(this)
   }
 
   async componentDidMount() {
-    const res = await axios.get('/api/dailynews')
-    if (res.data.length > 0) {
+    // const res = await axios.get('/api/dailynews')
+    const search = location.search
+    const searchParams = new URLSearchParams(search)
+    if (searchParams.has('newsid')) {
+      const newsID = searchParams.get('newsid')
+      fetch(
+        `https://thai-news-reader.s3-ap-southeast-1.amazonaws.com/json/${newsID}.json`
+      )
+        .then(response => response.json())
+        .then(news => {
+          message.success('Place text at input box')
+          console.log('get news', news.message)
+          const {
+            message: { text, voiceLanguage, voicePitch, voiceRate }
+          } = news
+          this.setState({
+            currentText: text,
+            voiceLanguage: voiceLanguage,
+            voicePitch: voicePitch,
+            voiceRate: voiceRate
+          })
+        })
+        .catch(error => {
+          console.error(error)
+        })
+    } else {
       this.setState({
-        newLists: res.data,
-        textSeq: textSplitter(res.data[0])
+        currentText:
+          'กรุณาแปะเนื้อหาข่าวที่นี่ จากนั้น กดปุ่มเพื่อเริ่มอ่านข่าว ...'
       })
     }
-
     //
     if (localStorage.getItem('userSession') !== null) {
       this.setState({
@@ -187,182 +195,233 @@ class Home extends React.Component<
     })
   }
 
-  changeContent = index => {
-    const { newLists } = this.state
-    this.setState({ textSeq: textSplitter(newLists[index]) })
-  }
-  changeCurrentReader = index => {
-    this.setState({ currentReader: index })
-  }
-  reader = () => {
-    const { textSeq } = this.state
-    const language = 'Thai Female'
-    textSeq.map((text, index) => {
-      const { responsiveVoice } = window
-      responsiveVoice.speak(text, language, {
-        pitch: 0.8,
-        rate: 1,
-        onEnd: function() {
-          this.changeCurrentReader(index + 1)
-          console.log('Voice ended')
-        }
-      })
-    })
-  }
-
   render() {
-    const { newLists, textSeq, currentReader } = this.state
+    const {
+      currentText,
+      userSession,
+      voiceLanguage,
+      voicePitch,
+      voiceRate
+    } = this.state
+    const language = voiceLanguage
+    const voiceConfig = {
+      pitch: voicePitch,
+      rate: voiceRate
+    }
     return (
-      <div>
-        <Head title="Home" />
-        <Nav />
-
-        <div className="container">
-          <img
-            src="/static/assets/ic_code.png"
-            className="App-logo"
-            alt="logo"
-            style={{ maxHeight: '96px' }}
-          />
-          <ul className="content">
-            {newLists.map(
-              (
-                { title, description, image, provider, datetime }: NewResponse,
-                index
-              ) => {
-                return (
-                  <li key={index} onClick={() => this.changeContent(index)}>
-                    <div className="image-frame">
-                      <img src={image[0]} alt={`${provider}-${title}`} />
-                    </div>
-                    <div className="content-text">
-                      <h3>
-                        [{provider.toUpperCase()}] {title}
-                      </h3>
-                      <h5>{description[0].substring(0, 160)}...</h5>
-                      <h5 className="date">
-                        วันที่ {moment(datetime).format('DD MMM YYYY - HH:mm')}
-                      </h5>
-                    </div>
-                  </li>
-                )
-              }
-            )}
-          </ul>
-
-          <div className="reader">
-            {textSeq.map((text, index) => (
-              <span
+      <div
+        className="App"
+        style={{
+          position: 'relative',
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden'
+        }}
+      >
+        {userSession !== null && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              color: 'white',
+              display: 'flex'
+            }}
+          >
+            <div style={{ textAlign: 'right' }}>
+              <div>{userSession.name}</div>
+              <Button onClick={this.logoutSession}>ออกจากระบบ</Button>
+            </div>
+            <img
+              src={userSession.picture}
+              alt=""
+              style={{
+                height: '32px',
+                borderRadius: '20px',
+                marginLeft: '12px'
+              }}
+            />
+          </div>
+        )}
+        <img className="img-code" src="/static/assets/ic_code.png" alt="" />
+        <img className="img-travel" src="/static/assets/ic_travel.png" alt="" />
+        <header className="App-header">
+          <div style={{ marginBottom: '28px', display: 'flex' }}>
+            <img
+              src="/static/assets/news_icon_720.png"
+              className="App-logo"
+              alt="logo"
+              style={{ maxHeight: '96px' }}
+            />
+            <div
+              style={{
+                textAlign: 'left',
+                paddingLeft: '20px',
+                marginLeft: '20px',
+                borderLeft: '1px solid #ffffff54'
+              }}
+            >
+              <h1
                 style={{
-                  fontWeight: currentReader === index ? 500 : 300,
-                  color: currentReader === index ? 'red' : 'black'
+                  margin: '0',
+                  fontSize: '40px',
+                  fontFamily: 'Roboto',
+                  color: '#ff7363'
                 }}
               >
-                {text}{' '}
-              </span>
-            ))}
+                NewsReader
+              </h1>
+              <h4
+                style={{
+                  margin: '0',
+                  fontSize: '28px',
+                  fontFamily: 'Roboto',
+                  color: '#e2908a'
+                }}
+              >
+                อ่านทำไม ? ฟังสิ !
+              </h4>
+            </div>
           </div>
+          {userSession == null && (
+            <Fragment>
+              <FacebookLogin
+                appId="2642223592507853"
+                autoLoad
+                fields="name,email,picture"
+                callback={this.loginSession}
+                render={renderProps => (
+                  <Button
+                    size="large"
+                    className="_button-facebook"
+                    onClick={renderProps.onClick}
+                  >
+                    <img
+                      src="/static/assets/facebook_icon.png"
+                      alt="click to read"
+                      style={{
+                        verticalAlign: 'initial',
+                        height: '15px',
+                        marginRight: '7px'
+                      }}
+                    />
+                    LOGIN WITH FACEBOOK
+                  </Button>
+                )}
+              />
+              <br />
+            </Fragment>
+          )}
+          <TextArea
+            className="_text-area"
+            value={currentText}
+            rows={14}
+            style={{
+              minHeight: '390px',
+              maxWidth: '720px',
+              borderRadius: '5px',
+              background: '#272727',
+              color: '#dedede',
+              fontSize: '16px',
+              letterSpacing: '0.5px',
+              border: '1px solid grey',
+              boxShadow: '0 9px 20px #252222',
+              padding: '12px'
+            }}
+            onChange={this.onChange}
+          />
+          <br />
           <div>
-            <button onClick={() => this.reader()}>PLAY</button>
+            <Button
+              size="large"
+              className="_button"
+              onClick={() => {
+                window.responsiveVoice.speak(currentText, language, voiceConfig)
+              }}
+            >
+              <img
+                src="/static/assets/news_icon_white.png"
+                alt="click to read"
+                style={{
+                  height: '15px',
+                  marginRight: '7px'
+                }}
+              />
+              อ่านข่าวนี้
+            </Button>
+            <span style={{ width: '14px', display: 'inline-block' }} />
+            <Button
+              size="large"
+              className="_button-red"
+              onClick={() => this.newsUpload()}
+            >
+              <img
+                src="/static/assets/share_icon.png"
+                alt="click to read"
+                style={{
+                  height: '15px',
+                  marginRight: '7px'
+                }}
+              />
+              แชร์ข่าวนี้
+            </Button>
+            <span style={{ width: '14px', display: 'inline-block' }} />
+            <Button
+              size="large"
+              className="_button-grey"
+              onClick={() => this.setState({ settingModal: true })}
+            >
+              ตั้งค่า
+            </Button>
           </div>
-        </div>
-
-        <style jsx>{`
-          .container {
-            display: flex;
-          }
-          ul.content {
-            max-width: 540px;
-          }
-          .content li {
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            border: 1px solid #d2d2d2;
-            margin-bottom: 7px;
-            cursor: pointer;
-            transition: 0.5s;
-          }
-          .content li:hover {
-            background: #f1f1f1;
-          }
-          .content li .image-frame {
-            min-width: 148px;
-            height: 90px;
-            overflow: hidden;
-            position: relative;
-            margin-right: 26px;
-          }
-          .content li .image-frame img {
-            height: 100%;
-          }
-          .content li .content-text {
-            flex-grow: 1;
-          }
-          .content li .content-text h3 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 300;
-            margin-bottom: 6px;
-          }
-          .content li .content-text h5 {
-            margin: 0;
-            font-size: 12px;
-            font-weight: 200;
-            color: grey;
-          }
-          .content li .content-text h5.date {
-            color: #0683e6;
-            margin-top: 6px;
-          }
-          .reader {
-            flex-grow: 1;
-          }
-          .hero {
-            width: 100%;
-            color: #333;
-          }
-          .title {
-            margin: 0;
-            width: 100%;
-            padding-top: 80px;
-            line-height: 1.15;
-            font-size: 48px;
-          }
-          .title,
-          .description {
-            text-align: center;
-          }
-          .row {
-            max-width: 880px;
-            margin: 80px auto 40px;
-            display: flex;
-            flex-direction: row;
-            justify-content: space-around;
-          }
-          .card {
-            padding: 18px 18px 24px;
-            width: 220px;
-            text-align: left;
-            text-decoration: none;
-            color: #434343;
-            border: 1px solid #9b9b9b;
-          }
-          .card:hover {
-            border-color: #067df7;
-          }
-          .card h3 {
-            margin: 0;
-            color: #067df7;
-            font-size: 18px;
-          }
-          .card p {
-            margin: 0;
-            padding: 12px 0 0;
-            font-size: 13px;
-            color: #333;
-          }
-        `}</style>
+        </header>
+        <Modal
+          title="settings"
+          visible={this.state.settingModal}
+          onCancel={() => this.setState({ settingModal: false })}
+          footer={null}
+        >
+          <h4>
+            <span>เสียงอ่านภาษา</span>
+            <Select
+              defaultValue={voiceLanguage}
+              style={{ width: 120 }}
+              onChange={this.languageChange}
+            >
+              <Option value="Thai Female">ภาษาไทย</Option>
+              <Option value="UK English Female">ภาษาอังกฤษ</Option>
+            </Select>
+          </h4>
+          <h4>
+            <span>ระดับเสียง</span>
+            <Slider
+              defaultValue={voicePitch}
+              step={0.1}
+              min={0}
+              max={3}
+              onChange={this.pitchChange}
+            />
+          </h4>
+          <h4>
+            <span>ความเร็วในการอ่าน</span>
+            <Slider
+              defaultValue={voiceRate}
+              step={0.1}
+              min={0}
+              max={2}
+              onChange={this.speedChange}
+            />
+          </h4>
+        </Modal>
+        <Modal
+          title="share this news"
+          visible={this.state.shareModal}
+          onCancel={() => this.setState({ shareModal: false })}
+          footer={null}
+        >
+          <h1>{this.state.sharedID}</h1>
+          <h4>copy and share this link</h4>
+        </Modal>
       </div>
     )
   }
