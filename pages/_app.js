@@ -21,6 +21,7 @@ class MyApp extends App {
         <Component {...pageProps} />
         <Head>
           <script src="https://code.responsivevoice.org/responsivevoice.js?key=FNXkSrIO" />
+          <link href="/static/style/antd-input.css" rel="stylesheet" />
         </Head>
       </Container>
     )

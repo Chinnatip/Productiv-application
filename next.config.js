@@ -1,6 +1,7 @@
+const webpack = require('webpack')
 const withPlugins = require('next-compose-plugins')
 const withCSS = require('@zeit/next-css')
-// const optimizedImages = require('next-optimized-images')
+const optimizedImages = require('next-optimized-images')
 const withOffline = moduleExists('next-offline') ? require('next-offline') : {}
 
 // fix: prevents error when .css files are required by node
@@ -34,6 +35,7 @@ const nextConfig = {
     config.node = {
       fs: 'empty'
     }
+    config.plugins.push(new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/))
     config.module.rules.push({
       test: /\.(woff|woff2|eot|ttf)$/,
       use: [
@@ -61,8 +63,8 @@ module.exports = withPlugins(
           url: false
         }
       }
-    ]
-    // optimizedImages
+    ],
+    optimizedImages
   ],
   moduleExists('next-offline') ? withOffline(nextConfig) : nextConfig
 )
