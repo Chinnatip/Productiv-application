@@ -76,6 +76,9 @@ class Home extends React.Component<
   constructor(props) {
     super(props)
     this.state = {
+      currentReader: 0,
+      newLists: [],
+      textSeq: [],
       currentText: '. . .',
       sharedID: '',
       voiceLanguage: 'Thai Female',
@@ -84,10 +87,7 @@ class Home extends React.Component<
       shareModal: false,
       settingModal: false,
       loader: false,
-      userSession:
-        localStorage.getItem('userSession') === null
-          ? null
-          : JSON.parse(localStorage.getItem('userSession'))
+      userSession: null
     }
     this.onChange = this.onChange.bind(this)
     this.newsUpload = this.newsUpload.bind(this)
@@ -105,6 +105,13 @@ class Home extends React.Component<
       this.setState({
         newLists: res.data,
         textSeq: textSplitter(res.data[0])
+      })
+    }
+
+    //
+    if (localStorage.getItem('userSession') !== null) {
+      this.setState({
+        userSession: JSON.parse(localStorage.getItem('userSession'))
       })
     }
   }
