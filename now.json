@@ -7,5 +7,15 @@
       "use": "@now/next"
     }
   ],
+  "routes": [
+    {
+      "src": "/api/imdb/(?<mid>[^/]+)$",
+      "dest": "/api/imdb?mid=$mid"
+    },
+    {
+      "src": "/api/reader/(?<path>[^/]*)/(?<mid>[^/]*)",
+      "dest": "/api/reader?path=$path&mid=$mid"
+    }
+  ],
   "regions": ["sin1"]
 }
