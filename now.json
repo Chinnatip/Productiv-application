@@ -9,12 +9,8 @@
   ],
   "routes": [
     {
-      "src": "/api/imdb/(?<mid>[^/]+)$",
-      "dest": "/api/imdb?mid=$mid"
-    },
-    {
-      "src": "/api/reader/(?<path>[^/]*)/(?<mid>[^/]*)",
-      "dest": "/api/reader?path=$path&mid=$mid"
+      "src": "/api/reader/(?<path>[^/]*)/(?<id>[^/]*)",
+      "dest": "/api/reader?path=$path&id=$id"
     }
   ],
   "regions": ["sin1"]

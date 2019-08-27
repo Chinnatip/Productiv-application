@@ -1,14 +1,11 @@
 const puppeteer = require('puppeteer')
 
-// scrapper_setup
-const IMDB_URL = movie_id => `https://www.imdb.com/title/${movie_id}/`
-
-export default async function handle(req, res) {
-  const MOVIE_ID = req.query.mid
+export async function fetch(movie_id) {
+  const URL = `https://www.imdb.com/title/${movie_id}/`
   const browser = await puppeteer.launch()
   const page = await browser.newPage()
   //
-  await page.goto(IMDB_URL(MOVIE_ID), { waitUntil: 'networkidle0' })
+  await page.goto(URL, { waitUntil: 'networkidle0' })
   //
   let data = await page.evaluate(() => {
     let title = document.querySelector('div[class="title_wrapper"] > h1')
@@ -25,5 +22,5 @@ export default async function handle(req, res) {
   })
   //
   await browser.close()
-  res.json(data)
+  return data
 }
